@@ -62,7 +62,7 @@ jobs:
 
       - name: Prepare Flutter build
         if: steps.secrets.outputs.ready == 'true'
-        run: flutter build ios --release --config-only --build-number ${{ github.run_number }}
+        run: flutter build ios --release --config-only --no-codesign --build-number ${{ github.run_number }}
 
       - name: Archive
         if: steps.secrets.outputs.ready == 'true'
