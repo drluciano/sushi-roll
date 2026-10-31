@@ -38,17 +38,3 @@ jobs:
           name: SushiRoll-windows
           path: build/windows/x64/runner/Release/
 
-  ios:
-    name: iOS build (unsigned)
-    runs-on: xcode-27
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - name: Select Xcode 27.1
-        run: sudo xcode-select -s /Applications/Xcode_27.1.app
-      - name: Generate platform folders
-        run: ./tool/bootstrap.sh
-      - run: flutter build ios --release --no-codesign
