@@ -22,7 +22,7 @@ if plist_path.exists():
         "NSCameraUsageDescription":
             "Take a photo or video to send to your other devices.",
         "NSLocationWhenInUseUsageDescription":
-            "Sushi Roll doesn't use your location. This is only shown if a photo's location is read while sending it.",
+            "Sushi Roll doesn't use your location.",
         # Received files show up in Files > On My iPhone > Sushi Roll.
         "UIFileSharingEnabled": True,
         "LSSupportsOpeningDocumentsInPlace": True,
