@@ -103,16 +103,16 @@ class SushiServer {
     try {
       final path = req.uri.path;
       if (req.method == 'GET' && path == Api.info) {
-        return _json(req, delegate.localInfo.toJson());
+        return await _json(req, delegate.localInfo.toJson());
       }
-      if (req.method == 'POST' && path == Api.hello) return _hello(req);
+      if (req.method == 'POST' && path == Api.hello) return await _hello(req);
       if (req.method == 'GET' && path == Api.peers) {
-        return _json(req, {'peers': delegate.shareablePeers()});
+        return await _json(req, {'peers': delegate.shareablePeers()});
       }
-      if (req.method == 'POST' && path == Api.offer) return _offer(req);
-      if (req.method == 'POST' && path == Api.upload) return _upload(req);
-      if (req.method == 'POST' && path == Api.cancel) return _cancel(req);
-      return _json(req, {'error': 'not_found'}, status: HttpStatus.notFound);
+      if (req.method == 'POST' && path == Api.offer) return await _offer(req);
+      if (req.method == 'POST' && path == Api.upload) return await _upload(req);
+      if (req.method == 'POST' && path == Api.cancel) return await _cancel(req);
+      return await _json(req, {'error': 'not_found'}, status: HttpStatus.notFound);
     } catch (e) {
       try {
         await _json(req, {'error': 'internal'}, status: HttpStatus.internalServerError);
@@ -226,7 +226,7 @@ class SushiServer {
         _sessions.remove(session.id);
       }
       delegate.sessionUpdated(session);
-      return _json(req, {'ok': true});
+      return await _json(req, {'ok': true});
     } catch (e) {
       await sink.close().catchError((_) {});
       if (await part.exists()) await part.delete().catchError((_) => part);

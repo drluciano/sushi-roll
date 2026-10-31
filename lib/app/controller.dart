@@ -316,7 +316,7 @@ class AppController extends ChangeNotifier implements ServerDelegate {
   /// Parses "host", "host:port", "[v6]:port", a bare IPv6 address or a URL
   /// into host + port.
   static (String, int)? parseAddress(String input) {
-    var s = input.trim().replaceFirst(RegExp(r'^[a-zA-Z]+://'), '').split('/').first;
+    final s = input.trim().replaceFirst(RegExp(r'^[a-zA-Z]+://'), '').split('/').first;
     if (s.isEmpty) return null;
     if (InternetAddress.tryParse(s)?.type == InternetAddressType.IPv6) {
       return (normalizeHost(s), kDefaultPort);
