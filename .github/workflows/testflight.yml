@@ -9,7 +9,8 @@ name: TestFlight
 #   ASC_KEY_P8      Full text of the downloaded AuthKey_XXXX.p8 file
 on:
   push:
-    branches: [main]
+    # The second branch is temporary, to prove signing works before merging.
+    branches: [main, claude/project-thread-tcgx8c]
   workflow_dispatch:
 
 concurrency:
