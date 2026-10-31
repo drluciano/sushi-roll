@@ -13,5 +13,13 @@ if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then
   rm test/widget_test.dart
 fi
 
+# pub get writes ios/Podfile (needed for the deployment-target patch).
+flutter pub get >/dev/null
 python3 tool/patch_platforms.py
+# If pub get didn't create the Podfile, let a config-only build do it (macOS
+# only), then patch again so CocoaPods sees the right minimum iOS version.
+if [ "$(uname)" = "Darwin" ] && [ ! -f ios/Podfile ]; then
+  flutter build ios --config-only --no-codesign >/dev/null 2>&1 || true
+  python3 tool/patch_platforms.py
+fi
 echo "Platform folders ready."

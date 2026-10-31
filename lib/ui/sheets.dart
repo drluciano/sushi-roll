@@ -238,10 +238,11 @@ class _AddDeviceSheetState extends State<AddDeviceSheet> with SingleTickerProvid
 
 // ------------------------------------------------------------------ pin
 
-Future<String?> askForPin(BuildContext context, String deviceName) {
+Future<String?> askForPin(BuildContext context, String deviceName, {Offset? anchorPoint}) {
   final text = TextEditingController();
   return showDialog<String>(
     context: context,
+    anchorPoint: anchorPoint,
     builder: (context) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
       title: const Text('Enter PIN'),

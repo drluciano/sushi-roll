@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../app/controller.dart';
 import '../core/models.dart';
+import 'adaptive.dart';
 import 'sheets.dart';
 import 'theme.dart';
 import 'widgets/ambient.dart';
@@ -60,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      // On a folded or split screen, open on the sending side.
+      anchorPoint: _sendSide,
       builder: (_) => IncomingSheet(offer: offer),
     );
     // Swiping the sheet away counts as "not now".
@@ -99,7 +102,14 @@ class _HomeScreenState extends State<HomeScreen> {
       await _pickInto();
       if (c.picked.isEmpty) return;
     }
-    await c.send(p, askPin: () => askForPin(context, p.info.name));
+    await c.send(p, askPin: () => askForPin(context, p.info.name, anchorPoint: _sendSide));
+  }
+
+  /// A point inside the sending pane (bottom/right), used to pick which side
+  /// of a fold dialogs and sheets appear on.
+  Offset get _sendSide {
+    final size = MediaQuery.sizeOf(context);
+    return Offset(size.width - 1, size.height - 1);
   }
 
   void _toast(String text) {
@@ -164,39 +174,109 @@ class _HomeScreenState extends State<HomeScreen> {
       body: AmbientBackground(
         child: ListenableBuilder(
           listenable: c,
-          builder: (context, _) {
-            final peers = c.peers;
-            return Column(
-              children: [
-                SafeArea(bottom: false, child: _header(context)),
-                if (c.startupError != null) _banner(context, c.startupError!),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 450),
-                    child: peers.isEmpty ? _emptyState(context) : _grid(context, peers),
-                  ),
-                ),
-                TransferList(
-                  transfers: c.transfers,
-                  onDismiss: c.dismissTransfer,
-                  onOpenFolder: c.openReceiveFolder,
-                ),
-                SendTray(
-                  picked: c.picked,
-                  totalBytes: c.pickedBytes,
-                  showPhotos: _mobile,
-                  onPickFiles: () => _pickInto(),
-                  onPickPhotos: () => _pickInto(media: true),
-                  onRemove: c.removePicked,
-                  onClear: c.clearPicked,
-                ),
-              ],
-            );
-          },
+          builder: (context, _) => LayoutBuilder(
+            builder: (context, box) {
+              final mq = MediaQuery.of(context);
+              final screen = box.biggest;
+              final layout = computePaneLayout(screen, mq.displayFeatures);
+              // Fold, unfold and rotation cross-fade between arrangements.
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 420),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: layout.isSplit
+                    ? _twoPane(context, layout, screen)
+                    : _onePane(context, screen),
+              );
+            },
+          ),
         ),
       ),
     );
   }
+
+  /// Phones and iPhone Duo's outer display.
+  Widget _onePane(BuildContext context, Size screen) {
+    return Stack(
+      key: const ValueKey('one'),
+      children: [
+        PaneView(
+          rect: Offset.zero & screen,
+          screen: screen,
+          child: Column(
+            children: [
+              ..._devicesColumn(context),
+              _transfers(),
+              _tray(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// iPhone Duo's inner display and large screens: devices on one side of the
+  /// fold, sending on the other. Stacked when the fold runs across (passport
+  /// or tabletop), side by side when it runs top to bottom.
+  Widget _twoPane(BuildContext context, PaneLayout layout, Size screen) {
+    return Stack(
+      key: ValueKey('two-${layout.axis.name}'),
+      children: [
+        PaneView(
+          rect: layout.first,
+          screen: screen,
+          child: Column(children: _devicesColumn(context)),
+        ),
+        PaneView(
+          rect: layout.second,
+          screen: screen,
+          child: _SendPane(
+            stacked: layout.axis == PaneAxis.stacked,
+            transfers: _transfers(scrollable: true),
+            tray: _tray(devicesAreBeside: layout.axis == PaneAxis.sideBySide),
+            hasTransfers: c.transfers.isNotEmpty,
+            hasPicked: c.picked.isNotEmpty,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _devicesColumn(BuildContext context) {
+    final peers = c.peers;
+    return [
+      SafeArea(bottom: false, child: _header(context)),
+      if (c.startupError != null) _banner(context, c.startupError!),
+      Expanded(
+        child: SafeArea(
+          top: false,
+          bottom: false,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 450),
+            child: peers.isEmpty ? _emptyState(context) : _grid(context, peers),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  Widget _transfers({bool scrollable = false}) => TransferList(
+        transfers: c.transfers,
+        onDismiss: c.dismissTransfer,
+        onOpenFolder: c.openReceiveFolder,
+        maxVisible: scrollable ? 8 : 3,
+      );
+
+  Widget _tray({bool devicesAreBeside = false}) => SendTray(
+        devicesAreBeside: devicesAreBeside,
+        picked: c.picked,
+        totalBytes: c.pickedBytes,
+        showPhotos: _mobile,
+        onPickFiles: () => _pickInto(),
+        onPickPhotos: () => _pickInto(media: true),
+        onRemove: c.removePicked,
+        onClear: c.clearPicked,
+      );
 
   Widget _header(BuildContext context) {
     final theme = Theme.of(context);
@@ -366,4 +446,85 @@ class _RollPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RollPainter oldDelegate) => false;
+}
+
+/// The sending side of the two-pane layout.
+class _SendPane extends StatelessWidget {
+  const _SendPane({
+    required this.stacked,
+    required this.transfers,
+    required this.tray,
+    required this.hasTransfers,
+    required this.hasPicked,
+  });
+
+  final bool stacked;
+  final Widget transfers;
+  final Widget tray;
+  final bool hasTransfers;
+  final bool hasPicked;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+    return Column(
+      children: [
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 8),
+            child: Row(
+              children: [
+                Text('Send',
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              child: hasTransfers
+                  ? SingleChildScrollView(
+                      key: const ValueKey('list'),
+                      padding: const EdgeInsets.only(top: 4),
+                      child: transfers,
+                    )
+                  : Center(
+                      key: const ValueKey('idle'),
+                      child: EntranceAnimation(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                hasPicked ? Icons.touch_app_rounded : Icons.inbox_rounded,
+                                size: stacked ? 36 : 48,
+                                color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                hasPicked
+                                    ? 'Tap a device to send.'
+                                    : 'Pick files below. Anything you send or receive shows up here.',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(color: muted, height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+        tray,
+      ],
+    );
+  }
 }

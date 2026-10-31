@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   testflight:
-    runs-on: macos-15
+    runs-on: xcode-27
     env:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -44,9 +44,11 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Select Xcode
+      # iPhone Duo's full-screen layout, fold and reserved regions need the
+      # iOS 27.1 SDK, which ships with Xcode 27.1.
+      - name: Select Xcode 27.1
         if: steps.secrets.outputs.ready == 'true'
-        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+        run: sudo xcode-select -s /Applications/Xcode_27.1.app && xcodebuild -version
 
       - name: Generate platform folders
         if: steps.secrets.outputs.ready == 'true'
@@ -75,6 +77,14 @@ jobs:
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
             archive
+
+      - name: Check the binary was built with the iOS 27.1 SDK
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          BIN="$RUNNER_TEMP/Runner.xcarchive/Products/Applications/Runner.app/Runner"
+          SDK=$(otool -l "$BIN" | grep -A4 LC_BUILD_VERSION | awk '/sdk/ {print $2; exit}')
+          echo "Built with iOS SDK $SDK"
+          python3 -c "import sys; v=tuple(map(int,'$SDK'.split('.'))); sys.exit(0 if v>=(27,1) else 'iPhone Duo needs the iOS 27.1 SDK or later')"
 
       - name: Export and upload to TestFlight
         if: steps.secrets.outputs.ready == 'true'

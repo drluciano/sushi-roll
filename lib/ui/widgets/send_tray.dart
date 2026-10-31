@@ -15,7 +15,12 @@ class SendTray extends StatelessWidget {
     required this.onPickPhotos,
     required this.onRemove,
     required this.onClear,
+    this.devicesAreBeside = false,
   });
+
+  /// In the side-by-side layout the devices sit next to the tray, not above,
+  /// so the "tap a device" hint points sideways.
+  final bool devicesAreBeside;
 
   final List<PickedFile> picked;
   final int totalBytes;
@@ -166,14 +171,16 @@ class SendTray extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        const Center(child: _TapHint()),
+        Center(child: _TapHint(beside: devicesAreBeside)),
       ],
     );
   }
 }
 
 class _TapHint extends StatefulWidget {
-  const _TapHint();
+  const _TapHint({required this.beside});
+
+  final bool beside;
 
   @override
   State<_TapHint> createState() => _TapHintState();
@@ -198,11 +205,20 @@ class _TapHintState extends State<_TapHint> with SingleTickerProviderStateMixin 
       children: [
         AnimatedBuilder(
           animation: _c,
-          builder: (context, child) => Transform.translate(
-            offset: Offset(0, -4 * Curves.easeInOut.transform(_c.value)),
-            child: child,
+          builder: (context, child) {
+            final d = 4 * Curves.easeInOut.transform(_c.value);
+            final rtl = Directionality.of(context) == TextDirection.rtl;
+            return Transform.translate(
+              offset: widget.beside ? Offset(rtl ? d : -d, 0) : Offset(0, -d),
+              child: child,
+            );
+          },
+          child: Icon(
+            widget.beside ? Icons.arrow_back_rounded : Icons.arrow_upward_rounded,
+            size: 18,
+            color: color,
+            textDirection: Directionality.of(context),
           ),
-          child: Icon(Icons.arrow_upward_rounded, size: 18, color: color),
         ),
         const SizedBox(width: 6),
         Text('Now tap a device',

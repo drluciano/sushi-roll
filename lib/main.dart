@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:duo_display/duo_display.dart';
 import 'package:flutter/services.dart';
 
 import 'app/controller.dart';
 import 'core/models.dart';
+import 'ui/adaptive.dart';
 import 'ui/home_screen.dart';
 import 'ui/theme.dart';
 
@@ -15,7 +17,10 @@ void main() {
   ));
   final controller = AppController(platform: _detectPlatform());
   controller.init();
-  runApp(SushiRollApp(controller: controller));
+  // DuoDisplayFeatures reports iPhone Duo's fold and cameras (iOS 27.1 hinge
+  // and reserved-region APIs) through MediaQuery.displayFeatures. Elsewhere
+  // it does nothing.
+  runApp(DuoDisplayFeatures(child: SushiRollApp(controller: controller)));
 }
 
 DevicePlatform _detectPlatform() {
@@ -67,6 +72,7 @@ class _SushiRollAppState extends State<SushiRollApp> with WidgetsBindingObserver
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
+      builder: (context, child) => FoldAwareScope(child: child!),
       home: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, _) => AnimatedSwitcher(
