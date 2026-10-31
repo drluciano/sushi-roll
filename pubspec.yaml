@@ -1,0 +1,22 @@
+name: sushi_roll
+description: Send files between your devices, on the same Wi-Fi or across Tailscale.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  file_picker: ^10.0.0
+  path_provider: ^2.1.4
+  shared_preferences: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
