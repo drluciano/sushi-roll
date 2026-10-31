@@ -13,15 +13,17 @@ class TransferList extends StatelessWidget {
     required this.transfers,
     required this.onDismiss,
     required this.onOpenFolder,
+    this.maxVisible = 3,
   });
 
   final List<Transfer> transfers;
+  final int maxVisible;
   final ValueChanged<Transfer> onDismiss;
   final VoidCallback onOpenFolder;
 
   @override
   Widget build(BuildContext context) {
-    final visible = transfers.take(3).toList();
+    final visible = transfers.take(maxVisible).toList();
     return AnimatedSize(
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeOutCubic,

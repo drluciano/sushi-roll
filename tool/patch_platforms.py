@@ -30,9 +30,46 @@ if plist_path.exists():
         "NSAppTransportSecurity": {"NSAllowsLocalNetworking": True, "NSAllowsArbitraryLoads": True},
         # No custom crypto: skips the export-compliance question in TestFlight.
         "ITSAppUsesNonExemptEncryption": False,
+        # Every orientation, so iPhone Duo's inner display can be held any way.
+        "UISupportedInterfaceOrientations": [
+            "UIInterfaceOrientationPortrait",
+            "UIInterfaceOrientationPortraitUpsideDown",
+            "UIInterfaceOrientationLandscapeLeft",
+            "UIInterfaceOrientationLandscapeRight",
+        ],
+        "UISupportedInterfaceOrientations~ipad": [
+            "UIInterfaceOrientationPortrait",
+            "UIInterfaceOrientationPortraitUpsideDown",
+            "UIInterfaceOrientationLandscapeLeft",
+            "UIInterfaceOrientationLandscapeRight",
+        ],
     })
+    # Full-screen-only apps can't resize when iPhone Duo folds or unfolds.
+    plist.pop("UIRequiresFullScreen", None)
     with plist_path.open("wb") as f:
         plistlib.dump(plist, f)
+
+# duo_display (iPhone Duo fold reporting) needs iOS 15 or later.
+IOS_MIN = "15.0"
+pbxproj = root / "ios" / "Runner.xcodeproj" / "project.pbxproj"
+if pbxproj.exists():
+    src = pbxproj.read_text()
+    src = re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [\d.]+;", f"IPHONEOS_DEPLOYMENT_TARGET = {IOS_MIN};", src)
+    pbxproj.write_text(src)
+
+podfile = root / "ios" / "Podfile"
+if podfile.exists():
+    src = podfile.read_text()
+    src = re.sub(r"^#?\s*platform :ios, '[\d.]+'", f"platform :ios, '{IOS_MIN}'", src, flags=re.M)
+    podfile.write_text(src)
+
+framework_info = root / "ios" / "Flutter" / "AppFrameworkInfo.plist"
+if framework_info.exists():
+    with framework_info.open("rb") as f:
+        info = plistlib.load(f)
+    info["MinimumOSVersion"] = IOS_MIN
+    with framework_info.open("wb") as f:
+        plistlib.dump(info, f)
 
 main_cpp = root / "windows" / "runner" / "main.cpp"
 if main_cpp.exists():

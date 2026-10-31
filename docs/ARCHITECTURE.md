@@ -36,3 +36,17 @@ Transfers are plain HTTP. Over Tailscale they're already end-to-end encrypted by
 
 - iOS suspends sockets in the background. The app restarts its server and rediscovers when it comes back to the foreground, so keep it open during a transfer.
 - Multicast on iOS needs Apple's multicast entitlement. Without it, LAN discovery quietly does nothing and the other routes cover it.
+
+## iPhone Duo
+
+- **SDK:** iOS builds use Xcode 27.1 (`xcode-27` runner), so the app is stamped with the iOS 27.1 SDK and fills both displays instead of running letterboxed. The TestFlight workflow fails if the stamp is older.
+- **Fold and cameras:** [`duo_display`](https://pub.dev/packages/duo_display) reads iOS 27.1's hinge and reserved-region APIs and reports them through Flutter's standard `MediaQuery.displayFeatures`. A reported fold is a `hinge` feature (book/passport posture). The cameras are `cutout` features.
+- **Layout (`lib/ui/adaptive.dart`):**
+  - Outer display and phones use one pane.
+  - On the inner display, devices go on one side of the fold and sending on the other.
+  - Held upright, or half-open like a passport or on a table, the panes are stacked.
+  - Held sideways, the panes are side by side.
+  - When the device is flat open, no fold is reported, so `FoldAwareScope` adds a synthetic one at the crease. That way Flutter's own sheets and dialogs open on one side instead of straddling it.
+  - Requests and PIN prompts open on the sending side.
+  - Each pane keeps only the safe-area insets for the screen edges it touches, so the asymmetric status column is honoured, and it pads past any camera cutout.
+- **Orientation:** all orientations are allowed, and `UIRequiresFullScreen` is never set, so folding and unfolding can resize the app.
