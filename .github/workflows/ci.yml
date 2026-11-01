@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -21,8 +22,10 @@ jobs:
       - run: flutter test
 
   windows:
-    name: Windows build
+    name: Windows build and installer
     runs-on: windows-latest
+    permissions:
+      contents: write # publishing the installer to Releases
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -32,9 +35,64 @@ jobs:
       - name: Generate platform folders
         shell: bash
         run: ./tool/bootstrap.sh
-      - run: flutter build windows --release
+      - name: Work out version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' pubspec.yaml)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version $VERSION, build ${{ github.run_number }}"
+      - run: flutter build windows --release --build-number ${{ github.run_number }}
+      # Ship the Visual C++ runtime next to the exe so the app starts on PCs
+      # that have never installed the VC++ redistributable.
+      - name: Bundle VC++ runtime
+        shell: pwsh
+        run: |
+          foreach ($dll in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+            Copy-Item "$env:WINDIR\System32\$dll" build\windows\x64\runner\Release\
+          }
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            "/DAppVersion=${{ steps.version.outputs.version }}" `
+            "/DSourceDir=$env:GITHUB_WORKSPACE\build\windows\x64\runner\Release" `
+            "/DOutputDir=$env:GITHUB_WORKSPACE\build\installer" `
+            installer\windows\SushiRoll.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         with:
-          name: SushiRoll-windows
+          name: SushiRoll-Setup
+          path: build/installer/*.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SushiRoll-windows-portable
           path: build/windows/x64/runner/Release/
 
+      # Every push to main refreshes the "Windows (latest)" pre-release, so the
+      # newest installer is always one tap away on the Releases page.
+      - name: Publish latest build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete windows-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create windows-latest build/installer/*.exe \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Windows (latest build)" \
+            --notes "Installer built from $GITHUB_SHA (build ${{ github.run_number }}). Download SushiRoll-Setup-*.exe and run it. Windows may show a SmartScreen warning because the installer isn't code-signed yet: click More info, then Run anyway."
+
+      # Pushing a tag like v0.2.0 makes a proper release with the installer.
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" build/installer/*.exe --title "Sushi Roll $GITHUB_REF_NAME" --generate-notes
