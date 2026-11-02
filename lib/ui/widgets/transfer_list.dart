@@ -104,7 +104,6 @@ class TransferCard extends StatelessWidget {
       case TransferStatus.waiting:
         if (t.preparing) return '${formatBytes(t.totalBytes)} before shrinking';
         return _sizeWithSavings(t);
-        return formatBytes(t.totalBytes);
       default:
         return t.fileNames.length == 1 ? t.fileNames.first : '${t.fileNames.length} files';
     }
