@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/image_compress.dart';
 import '../core/models.dart';
 
 class SavedDevice {
@@ -72,6 +73,10 @@ class Settings {
 
   set savedDevices(List<SavedDevice> list) =>
       _prefs.setStringList('savedDevices', [for (final d in list) jsonEncode(d.toJson())]);
+
+  /// Last photo quality picked in the send tray; remembered between launches.
+  ImageQuality get imageQuality => ImageQuality.fromName(_prefs.getString('imageQuality'));
+  set imageQuality(ImageQuality v) => _prefs.setString('imageQuality', v.name);
 
   bool get seenWelcome => _prefs.getBool('seenWelcome') ?? false;
   set seenWelcome(bool v) => _prefs.setBool('seenWelcome', v);

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../core/client.dart';
 import '../core/discovery/lan_discovery.dart';
 import '../core/discovery/tailscale.dart';
+import '../core/image_compress.dart';
 import '../core/models.dart';
 import '../core/protocol.dart';
 import '../core/server.dart';
@@ -33,9 +34,15 @@ class Transfer {
   final String peerName;
   final String? peerId;
   final DevicePlatform peerPlatform;
-  final List<String> fileNames;
-  final int totalBytes;
+  List<String> fileNames;
+  int totalBytes;
   int doneBytes = 0;
+
+  /// True while photos are being shrunk, before the offer goes out.
+  bool preparing = false;
+
+  /// Size before photos were shrunk; null when nothing was shrunk.
+  int? originalBytes;
   TransferStatus status = TransferStatus.waiting;
   String? error;
   List<String> savedPaths = [];
@@ -394,6 +401,33 @@ class AppController extends ChangeNotifier implements ServerDelegate {
 
   int get pickedBytes => picked.fold(0, (a, f) => a + f.size);
 
+  bool get pickedHasImages => picked.any((f) => isCompressibleImage(f.name));
+
+  ImageQuality get imageQuality => settings.imageQuality;
+
+  set imageQuality(ImageQuality q) {
+    settings.imageQuality = q;
+    notifyListeners();
+  }
+
+  /// Swaps each photo in [files] for a smaller copy written under [dir].
+  /// Files that aren't photos, or don't get smaller, are kept as they are.
+  Future<List<PickedFile>> _shrinkImages(
+      List<PickedFile> files, ImageQuality quality, Directory dir, CancelToken cancel) async {
+    final out = <PickedFile>[];
+    for (var i = 0; i < files.length; i++) {
+      final f = files[i];
+      if (cancel.isCancelled) break;
+      // One folder per file so "IMG_1.HEIC" and "IMG_1.JPG" can't collide.
+      final small = await compressImage(
+          f.path, f.name, quality, Directory('${dir.path}${Platform.pathSeparator}$i'));
+      out.add(small == null
+          ? f
+          : PickedFile(small.path, compressedName(f.name), await small.length()));
+    }
+    return out;
+  }
+
   // ---------------------------------------------------------------- sending
 
   Transfer? activeTransferFor(Peer p) => transfers
@@ -404,12 +438,10 @@ class AppController extends ChangeNotifier implements ServerDelegate {
   /// receiver wants a PIN; return null to give up.
   Future<void> send(Peer peer, {required Future<String?> Function() askPin}) async {
     if (picked.isEmpty) return;
-    final files = List.of(picked);
+    var files = List.of(picked);
     picked.clear();
-    final metas = [
-      for (var i = 0; i < files.length; i++)
-        FileMeta(id: 'f$i', name: files[i].name, size: files[i].size),
-    ];
+    final quality = settings.imageQuality;
+    final shrink = quality != ImageQuality.original && files.any((f) => isCompressibleImage(f.name));
     final t = Transfer(
       id: randomId(),
       direction: TransferDirection.outgoing,
@@ -417,8 +449,8 @@ class AppController extends ChangeNotifier implements ServerDelegate {
       peerId: peer.info.id,
       peerPlatform: peer.info.platform,
       fileNames: [for (final f in files) f.name],
-      totalBytes: metas.fold(0, (a, m) => a + m.size),
-    );
+      totalBytes: files.fold(0, (a, f) => a + f.size),
+    )..preparing = shrink;
     final cancel = CancelToken();
     t.onCancel = () {
       cancel.cancel();
@@ -435,7 +467,24 @@ class AppController extends ChangeNotifier implements ServerDelegate {
 
     String? host;
     String? session;
+    Directory? scratch;
     try {
+      if (shrink) {
+        scratch = Directory(
+            '${(await getTemporaryDirectory()).path}${Platform.pathSeparator}sushi_roll_out${Platform.pathSeparator}${t.id}');
+        files = await _shrinkImages(files, quality, scratch, cancel);
+        if (cancel.isCancelled) throw const SushiException('cancelled');
+        final shrunkBytes = files.fold(0, (a, f) => a + f.size);
+        if (shrunkBytes < t.totalBytes) t.originalBytes = t.totalBytes;
+        t.fileNames = [for (final f in files) f.name];
+        t.totalBytes = shrunkBytes;
+        t.preparing = false;
+        notifyListeners();
+      }
+      final metas = [
+        for (var i = 0; i < files.length; i++)
+          FileMeta(id: 'f$i', name: files[i].name, size: files[i].size),
+      ];
       final opened = await _openSession(peer, metas, askPin);
       host = opened.host;
       session = opened.session;
@@ -475,6 +524,13 @@ class AppController extends ChangeNotifier implements ServerDelegate {
       };
       if (e.code == 'cancelled' && host != null && session != null) {
         _client.cancel(host, peer.info.port, session);
+      }
+    } finally {
+      t.preparing = false;
+      if (scratch != null) {
+        try {
+          await scratch.delete(recursive: true);
+        } catch (_) {}
       }
     }
     t.finishedAt = DateTime.now();

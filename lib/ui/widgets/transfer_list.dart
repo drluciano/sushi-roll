@@ -83,6 +83,7 @@ class TransferCard extends StatelessWidget {
     final what = t.fileNames.length == 1 ? t.fileNames.first : '${t.fileNames.length} files';
     final outgoing = t.direction == TransferDirection.outgoing;
     return switch (t.status) {
+      TransferStatus.waiting when t.preparing => 'Shrinking photos for ${t.peerName}…',
       TransferStatus.waiting => outgoing ? 'Waiting for ${t.peerName} to accept…' : 'Getting ready…',
       TransferStatus.active => outgoing ? 'Sending $what to ${t.peerName}' : 'Receiving $what from ${t.peerName}',
       TransferStatus.done => outgoing ? 'Sent $what to ${t.peerName}' : 'Got $what from ${t.peerName}',
@@ -99,12 +100,20 @@ class TransferCard extends StatelessWidget {
         if (t.direction == TransferDirection.incoming) {
           return Platform.isIOS ? 'Saved in Files › Sushi Roll' : 'Saved to your Sushi Roll folder';
         }
-        return formatBytes(t.totalBytes);
+        return _sizeWithSavings(t);
       case TransferStatus.waiting:
+        if (t.preparing) return '${formatBytes(t.totalBytes)} before shrinking';
+        return _sizeWithSavings(t);
         return formatBytes(t.totalBytes);
       default:
         return t.fileNames.length == 1 ? t.fileNames.first : '${t.fileNames.length} files';
     }
+  }
+
+  static String _sizeWithSavings(Transfer t) {
+    final was = t.originalBytes;
+    if (was == null) return formatBytes(t.totalBytes);
+    return '${formatBytes(t.totalBytes)} · was ${formatBytes(was)}';
   }
 
   @override
