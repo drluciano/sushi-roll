@@ -276,6 +276,9 @@ class _HomeScreenState extends State<HomeScreen> {
         onPickPhotos: () => _pickInto(media: true),
         onRemove: c.removePicked,
         onClear: c.clearPicked,
+        showQuality: c.pickedHasImages,
+        quality: c.imageQuality,
+        onQualityChanged: (q) => c.imageQuality = q,
       );
 
   Widget _header(BuildContext context) {

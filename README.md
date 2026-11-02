@@ -25,6 +25,7 @@ The installer isn't code-signed yet, so SmartScreen may warn the first time: cli
 
 - Pick files (or photos) at the bottom, then tap a device.
 - Tapping a device with nothing picked opens the picker first.
+- When photos are picked, choose **Original**, **High**, **Medium** or **Low** quality. Original sends the files untouched; the others scale photos down (shortest side 2160 / 1440 / 960 px) and send them as JPEG (PNGs stay PNG). Videos, GIFs and other files are always sent as they are. The choice is remembered.
 - The receiver gets an Accept/Decline sheet. You can also require a 4-digit PIN in Settings.
 - Received files go to `Downloads\Sushi Roll` on Windows (you can change this), and to **Files › On My iPhone › Sushi Roll** on iOS.
 - Long-press a device to save or forget it.

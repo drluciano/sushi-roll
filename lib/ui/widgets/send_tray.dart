@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../app/controller.dart';
+import '../../core/image_compress.dart';
 import '../../core/models.dart';
 import '../theme.dart';
 
@@ -15,6 +17,9 @@ class SendTray extends StatelessWidget {
     required this.onPickPhotos,
     required this.onRemove,
     required this.onClear,
+    this.showQuality = false,
+    this.quality = ImageQuality.original,
+    this.onQualityChanged,
     this.devicesAreBeside = false,
   });
 
@@ -29,6 +34,11 @@ class SendTray extends StatelessWidget {
   final VoidCallback onPickPhotos;
   final ValueChanged<PickedFile> onRemove;
   final VoidCallback onClear;
+
+  /// Whether any picked file is a photo, so the quality picker is relevant.
+  final bool showQuality;
+  final ImageQuality quality;
+  final ValueChanged<ImageQuality>? onQualityChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +180,16 @@ class SendTray extends StatelessWidget {
             },
           ),
         ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          child: showQuality
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: _QualityPicker(quality: quality, onChanged: onQualityChanged),
+                )
+              : const SizedBox(width: double.infinity),
+        ),
         const SizedBox(height: 12),
         Center(child: _TapHint(beside: devicesAreBeside)),
       ],
@@ -223,6 +243,66 @@ class _TapHintState extends State<_TapHint> with SingleTickerProviderStateMixin 
         const SizedBox(width: 6),
         Text('Now tap a device',
             style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+}
+
+/// "Original · High · Medium · Low" for photos, with a one-line hint that
+/// says what the choice means.
+class _QualityPicker extends StatelessWidget {
+  const _QualityPicker({required this.quality, required this.onChanged});
+
+  final ImageQuality quality;
+  final ValueChanged<ImageQuality>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.photo_size_select_large_rounded, size: 16, color: muted),
+            const SizedBox(width: 6),
+            Text('Photo quality',
+                style: theme.textTheme.labelMedium?.copyWith(color: muted, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SegmentedButton<ImageQuality>(
+          segments: [
+            for (final q in ImageQuality.values)
+              ButtonSegment(value: q, label: Text(q.label, maxLines: 1, overflow: TextOverflow.fade)),
+          ],
+          selected: {quality},
+          showSelectedIcon: false,
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 4)),
+            textStyle: WidgetStatePropertyAll(theme.textTheme.labelMedium),
+          ),
+          onSelectionChanged: onChanged == null
+              ? null
+              : (s) {
+                  HapticFeedback.selectionClick();
+                  onChanged!(s.first);
+                },
+        ),
+        const SizedBox(height: 6),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Text(
+            quality.hint,
+            key: ValueKey(quality),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(color: muted),
+          ),
+        ),
       ],
     );
   }
