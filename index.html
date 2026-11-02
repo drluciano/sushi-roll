@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/sushi-roll/">
+
+  <meta charset="UTF-8">
+  <!-- viewport-fit=cover lets the app draw under the notch/camera strip like
+       the native app does; Flutter reads the safe-area insets itself. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Sushi Roll UI preview with sample devices.">
+
+  <!-- Add to Home Screen opens it full screen, without Safari's bars. -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sushi Preview">
+  <meta name="theme-color" content="#121614">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Sushi Roll preview</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; height: 100%; background: #121614; }
+    @media (prefers-color-scheme: light) { html, body { background: #FBF7F2; } }
+  </style>
+</head>
+<body>
+  <script src="flutter_bootstrap.js?v=477a37d" async></script>
+</body>
+</html>
