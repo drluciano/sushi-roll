@@ -12,6 +12,7 @@ import 'sheets.dart';
 import 'theme.dart';
 import 'widgets/ambient.dart';
 import 'widgets/device_tile.dart';
+import 'widgets/my_addresses.dart';
 import 'widgets/send_tray.dart';
 import 'widgets/transfer_list.dart';
 
@@ -334,6 +335,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _emptyState(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+    final addresses = MyAddresses(
+      lan: c.myLanAddress,
+      tailscale: c.myTailscaleAddresses.where((a) => !a.contains(':')).firstOrNull ??
+          c.myTailscaleAddresses.firstOrNull,
+      tailscaleName: c.myTailscaleName,
+      port: c.port,
+    );
     return Center(
       key: const ValueKey('empty'),
       child: SingleChildScrollView(
@@ -343,11 +351,25 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Radar(child: DeviceAvatar(platform: c.platform, size: 66)),
             const SizedBox(height: 8),
-            Text('Looking around…',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
+            // Where to find this device, so it's easy to add from the other
+            // one. Falls back to "Looking around…" until an address shows up.
+            AnimatedSize(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                child: addresses.isEmpty
+                    ? Text('Looking around…',
+                        key: const ValueKey('looking'),
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))
+                    : KeyedSubtree(key: const ValueKey('addresses'), child: addresses),
+              ),
+            ),
+            const SizedBox(height: 12),
             Text(
-              'Open Sushi Roll on another device. If it\'s on Tailscale or another network, add it by name once and it\'ll stay here.',
+              addresses.isEmpty
+                  ? 'Open Sushi Roll on another device. If it\'s on Tailscale or another network, add it by name once and it\'ll stay here.'
+                  : 'Open Sushi Roll on another device. On the same Wi-Fi it shows up by itself; otherwise tap Add device there and type one of these.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(color: muted, height: 1.4),
             ),
