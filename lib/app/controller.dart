@@ -99,6 +99,12 @@ class AppController extends ChangeNotifier implements ServerDelegate {
 
   List<String> myAddresses = [];
   List<String> myTailscaleAddresses = [];
+
+  /// The private address other devices on this Wi-Fi/Ethernet can type.
+  String? myLanAddress;
+
+  /// This device's MagicDNS name (desktop only; iOS can't run the CLI).
+  String? myTailscaleName;
   bool tailscaleCliAvailable = false;
   bool ready = false;
   String? startupError;
@@ -173,6 +179,9 @@ class AppController extends ChangeNotifier implements ServerDelegate {
         pinRequired: settings.pinEnabled,
       );
 
+  /// The port we're listening on; only worth showing when it isn't the default.
+  int get port => _port;
+
   @override
   String? get pin => settings.pinEnabled ? settings.pin : null;
 
@@ -196,6 +205,7 @@ class AppController extends ChangeNotifier implements ServerDelegate {
   Future<void> _refreshAddresses() async {
     myAddresses = await Tailscale.localAddressesAll();
     myTailscaleAddresses = myAddresses.where(Tailscale.isTailscaleAddress).toList();
+    myLanAddress = await Tailscale.lanAddress();
     notifyListeners();
   }
 
@@ -277,9 +287,10 @@ class AppController extends ChangeNotifier implements ServerDelegate {
     }
 
     if (full) {
-      final ts = await Tailscale.queryPeers();
-      tailscaleCliAvailable = ts != null;
-      for (final peer in ts ?? const <TailscalePeer>[]) {
+      final status = await Tailscale.queryStatus();
+      tailscaleCliAvailable = status != null;
+      myTailscaleName = status?.selfDnsName;
+      for (final peer in status?.peers ?? const <TailscalePeer>[]) {
         if (!peer.online) continue;
         final v4 = peer.addresses.where((a) => !a.contains(':')).firstOrNull ??
             peer.addresses.firstOrNull;

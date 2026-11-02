@@ -53,6 +53,75 @@ class Tailscale {
     }
   }
 
+  /// The address another device on the same network would type to reach this
+  /// one: a private IPv4 on the Wi-Fi or Ethernet adapter, or null.
+  static Future<String?> lanAddress() async {
+    try {
+      final ifaces = await NetworkInterface.list(
+          includeLoopback: false, type: InternetAddressType.IPv4);
+      return pickLanAddress([
+        for (final i in ifaces)
+          for (final a in i.addresses) (i.name, a.address),
+      ]);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Picks the most likely home-network address from (interface, address)
+  /// pairs. Skips Tailscale, cellular and virtual adapters (WSL, Hyper-V,
+  /// VirtualBox, VMware, Docker). Exposed for tests.
+  static String? pickLanAddress(List<(String, String)> candidates) {
+    int? score((String, String) c) {
+      final name = c.$1.toLowerCase();
+      final a = InternetAddress.tryParse(c.$2);
+      if (a == null || a.type != InternetAddressType.IPv4) return null;
+      if (isTailscaleAddress(c.$2)) return null;
+      const virtual = [
+        'pdp_ip', 'utun', 'ipsec', 'bridge', 'awdl', 'llw', 'tailscale',
+        'vethernet', 'wsl', 'virtualbox', 'vmware', 'vbox', 'docker', 'hyper-v', 'loopback',
+      ];
+      if (virtual.any(name.contains)) return null;
+      final b = a.rawAddress;
+      final int range;
+      if (b[0] == 192 && b[1] == 168) {
+        range = 30;
+      } else if (b[0] == 10) {
+        range = 20;
+      } else if (b[0] == 172 && b[1] >= 16 && b[1] < 32) {
+        range = 10;
+      } else {
+        return null; // public or link-local: not something to type in
+      }
+      final preferred = name == 'en0' || name.contains('wi-fi') ||
+          name.contains('wlan') || name.contains('wireless') || name.startsWith('ethernet');
+      return range + (preferred ? 5 : 0);
+    }
+
+    String? best;
+    var bestScore = -1;
+    for (final c in candidates) {
+      final s = score(c);
+      if (s != null && s > bestScore) {
+        best = c.$2;
+        bestScore = s;
+      }
+    }
+    return best;
+  }
+
+  /// This device's MagicDNS name from `tailscale status --json`, if any.
+  static String? parseSelfDnsName(String json) {
+    try {
+      final root = jsonDecode(json) as Map<String, dynamic>;
+      final self = root['Self'];
+      if (self is! Map<String, dynamic>) return null;
+      return _trimDot(self['DNSName'] as String?);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Parses `tailscale status --json`. Exposed for tests.
   static List<TailscalePeer> parseStatus(String json) {
     final root = jsonDecode(json) as Map<String, dynamic>;
@@ -86,12 +155,15 @@ class Tailscale {
 
   /// Asks the local Tailscale client for its peers. Returns null where that's
   /// not possible (iOS can't run the CLI; peers find iOS through hello instead).
-  static Future<List<TailscalePeer>?> queryPeers() async {
+  static Future<({List<TailscalePeer> peers, String? selfDnsName})?> queryStatus() async {
     for (final exe in _cliCandidates()) {
       try {
         final r = await Process.run(exe, ['status', '--json'])
             .timeout(const Duration(seconds: 4));
-        if (r.exitCode == 0) return parseStatus(r.stdout as String);
+        if (r.exitCode == 0) {
+          final out = r.stdout as String;
+          return (peers: parseStatus(out), selfDnsName: parseSelfDnsName(out));
+        }
       } catch (_) {
         // try next candidate
       }

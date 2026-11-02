@@ -159,6 +159,31 @@ void main() {
       expect(phone.addresses.first, '100.80.1.2');
       expect(phone.online, isTrue);
     });
+
+    test('reads our own MagicDNS name', () {
+      expect(
+          Tailscale.parseSelfDnsName('{"Self": {"HostName": "desk", "DNSName": "desk.tail1234.ts.net."}}'),
+          'desk.tail1234.ts.net');
+      expect(Tailscale.parseSelfDnsName('{"Self": {"HostName": "desk"}}'), isNull);
+      expect(Tailscale.parseSelfDnsName('not json'), isNull);
+    });
+
+    test('picks the home-network address', () {
+      // Windows with WSL, Hyper-V and Tailscale adapters.
+      expect(
+          Tailscale.pickLanAddress([
+            ('vEthernet (WSL)', '172.24.16.1'),
+            ('Tailscale', '100.80.1.2'),
+            ('Wi-Fi', '192.168.1.20'),
+          ]),
+          '192.168.1.20');
+      // iPhone on Wi-Fi with a cellular address too.
+      expect(
+          Tailscale.pickLanAddress([('pdp_ip0', '10.44.3.9'), ('en0', '10.0.0.7')]),
+          '10.0.0.7');
+      expect(Tailscale.pickLanAddress([('pdp_ip0', '10.44.3.9'), ('utun4', '100.80.1.2')]), isNull);
+      expect(Tailscale.pickLanAddress([('Ethernet', '8.8.8.8')]), isNull);
+    });
   });
 
   test('parses typed addresses', () {
