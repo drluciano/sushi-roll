@@ -17,8 +17,8 @@ If you want changes in about a minute, with the page reloading by itself, run th
 ### One-time setup on the PC
 
 1. Install **Git**: `winget install Git.Git`
-2. Install the **Flutter SDK** (stable): follow https://docs.flutter.dev/get-started/install/windows (unzip it, add `flutter\bin` to PATH). Run `flutter doctor` once. You only need the "Chrome / web" part; Android Studio and Visual Studio aren't needed for the preview.
-3. Clone the repo somewhere: `git clone https://github.com/drluciano/sushi-roll` (Git will ask you to sign in to GitHub the first time).
+2. Install the **Flutter SDK** (stable) in a folder **without spaces**, e.g. `git clone -b stable https://github.com/flutter/flutter.git C:\src\flutter`, and add `C:\src\flutter\bin` to PATH. If your Windows user name has a space (like `C:\Users\Dylan Rivera`), also set the user environment variable `PUB_CACHE=C:\src\pub-cache` and keep the repo under `C:\src`: Flutter's build hooks fail with "'C:\Users\Dylan' is not recognized" otherwise. Docs: follow https://docs.flutter.dev/get-started/install/windows (unzip it, add `flutter\bin` to PATH). Run `flutter doctor` once. You only need the "Chrome / web" part; Android Studio and Visual Studio aren't needed for the preview.
+3. Clone the repo: `git clone https://github.com/drluciano/sushi-roll C:\src\sushi-roll` (Git will ask you to sign in to GitHub the first time).
 
 ### Running it
 
