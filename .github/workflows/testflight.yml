@@ -7,13 +7,9 @@ name: TestFlight
 #   ASC_KEY_ID      App Store Connect API key ID
 #   ASC_ISSUER_ID   App Store Connect issuer ID
 #   ASC_KEY_P8      Full text of the downloaded AuthKey_XXXX.p8 file
-#
-# Runs only when asked, to save macOS minutes: tap "Run workflow" on the
-# TestFlight workflow in the Actions tab (works from the GitHub app), or push
-# a v* tag. For quick UI checks use the phone preview instead (docs/PREVIEW.md).
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
