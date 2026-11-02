@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/image_compress.dart';
@@ -83,7 +84,7 @@ class Settings {
 
   String _defaultName() {
     String? host;
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       try {
         host = Platform.localHostname.split('.').first;
       } catch (_) {}

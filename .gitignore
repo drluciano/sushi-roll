@@ -12,3 +12,7 @@ build/
 .DS_Store
 
 # Generated platform folders are created by tool/bootstrap; commit them once you've run it locally.
+
+# The web preview commits only index.html and manifest.json; flutter create fills in the rest.
+web/icons/
+web/favicon.png

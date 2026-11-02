@@ -20,7 +20,17 @@ class TailscalePeer {
 class Tailscale {
   /// True for 100.64.0.0/10 (Tailscale's CGNAT range) and fd7a:115c:a1e0::/48.
   static bool isTailscaleAddress(String address) {
-    final a = InternetAddress.tryParse(address);
+    // IPv4 by hand, so this also works where dart:io isn't (the web preview).
+    final v4 = RegExp(r'^(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}$').firstMatch(address);
+    if (v4 != null) {
+      return int.parse(v4[1]!) == 100 && (int.parse(v4[2]!) & 0xC0) == 64;
+    }
+    final InternetAddress? a;
+    try {
+      a = InternetAddress.tryParse(address);
+    } on UnsupportedError {
+      return false;
+    }
     if (a == null) return false;
     final b = a.rawAddress;
     if (a.type == InternetAddressType.IPv4) {

@@ -12,4 +12,4 @@ Everything below works in Safari on an iPhone or iPad.
    - `ASC_ISSUER_ID`
    - `ASC_KEY_P8`: the whole text of the `.p8` file, including the `BEGIN`/`END` lines.
 
-Then push to `main`, or run the **TestFlight** workflow from the Actions tab. Builds appear in TestFlight after Apple finishes processing them, usually in 5 to 15 minutes. The build number is the workflow run number.
+Then run the **TestFlight** workflow from the Actions tab (**Run workflow**, also available in the GitHub mobile app), or push a `v*` tag. Pushes to `main` no longer upload automatically, to save macOS minutes; use the [phone preview](PREVIEW.md) for quick UI checks. Builds appear in TestFlight after Apple finishes processing them, usually in 5 to 15 minutes. The build number is the workflow run number.

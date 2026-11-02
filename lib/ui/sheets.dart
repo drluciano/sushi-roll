@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
@@ -6,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/controller.dart';
+import '../app/host.dart' as host;
 import '../core/discovery/tailscale.dart';
 import '../core/models.dart';
 import 'theme.dart';
@@ -291,13 +291,13 @@ class _SettingsSheetState extends State<SettingsSheet> {
   late final _name = TextEditingController(text: widget.controller.settings.deviceName);
   String? _receivePath;
 
-  bool get _desktop => Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  bool get _desktop => host.isDesktop;
 
   @override
   void initState() {
     super.initState();
-    widget.controller.receiveDirectory().then((d) {
-      if (mounted) setState(() => _receivePath = d.path);
+    widget.controller.receiveFolderPath().then((p) {
+      if (mounted) setState(() => _receivePath = p);
     });
   }
 

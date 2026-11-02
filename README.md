@@ -42,7 +42,8 @@ flutter test
 
 The native platform folders aren't committed yet. CI generates them with `tool/bootstrap.sh`, so the repo can be built entirely from GitHub Actions.
 
-- **CI** (`.github/workflows/ci.yml`): analyze, test, and the Windows build + installer. Pushes to `main` refresh the "Windows (latest build)" pre-release; pushing a `v*` tag creates a proper release. The installer script is `installer/windows/SushiRoll.iss` (Inno Setup).
-- **TestFlight** (`.github/workflows/testflight.yml`): every push to `main` is signed and uploaded. See [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md).
+- **CI** (`.github/workflows/ci.yml`): analyze and test on every push and PR; the Windows build + installer on `main` and tags only. Pushes to `main` refresh the "Windows (latest build)" pre-release; pushing a `v*` tag creates a proper release. The installer script is `installer/windows/SushiRoll.iss` (Inno Setup).
+- **TestFlight** (`.github/workflows/testflight.yml`): runs when you tap **Run workflow** in the Actions tab or push a `v*` tag. See [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md).
+- **Phone preview** (`tool/preview_server.dart`): your PC builds the UI for the web with sample devices whenever a branch is pushed, and your iPhone shows it in Safari over Tailscale, with fake fold postures for iPhone Duo. No Actions minutes. See [docs/PREVIEW.md](docs/PREVIEW.md).
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the protocol.

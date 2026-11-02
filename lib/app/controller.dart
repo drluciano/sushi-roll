@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/client.dart';
@@ -87,10 +89,17 @@ class AppController extends ChangeNotifier implements ServerDelegate {
   final DevicePlatform platform;
   late final Settings settings;
   late final SushiServer _server = SushiServer(this);
-  final SushiClient _client = SushiClient();
+  late final SushiClient _client = SushiClient();
   late final LanDiscovery _lan = LanDiscovery(localInfo: () => localInfo, onFound: _onLanFound);
 
   final Map<String, Peer> _peers = {};
+
+  /// Lets the web preview fill the device list with sample devices.
+  @protected
+  void putPeer(Peer p) {
+    _peers[p.info.id] = p;
+    notifyListeners();
+  }
   final List<Transfer> transfers = [];
   final List<IncomingOffer> offers = [];
   final List<PickedFile> picked = [];
@@ -410,6 +419,23 @@ class AppController extends ChangeNotifier implements ServerDelegate {
     notifyListeners();
   }
 
+  /// Opens the system picker. [media] limits it to photos and videos.
+  Future<List<PickedFile>> pickFiles({bool media = false}) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: media ? FileType.media : FileType.any,
+      );
+      if (result == null) return const [];
+      return [
+        for (final f in result.files)
+          if (f.path != null) PickedFile(f.path!, f.name, f.size),
+      ];
+    } on PlatformException {
+      return const [];
+    }
+  }
+
   int get pickedBytes => picked.fold(0, (a, f) => a + f.size);
 
   bool get pickedHasImages => picked.any((f) => isCompressibleImage(f.name));
@@ -613,6 +639,9 @@ class AppController extends ChangeNotifier implements ServerDelegate {
     final downloads = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
     return Directory('${downloads.path}${Platform.pathSeparator}Sushi Roll');
   }
+
+  /// Where received files go, for showing in Settings.
+  Future<String> receiveFolderPath() async => (await receiveDirectory()).path;
 
   void setReceiveDir(String? path) {
     settings.receiveDir = path;

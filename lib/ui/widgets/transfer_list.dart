@@ -1,8 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../app/controller.dart';
+import '../../app/host.dart' as host;
 import '../../core/models.dart';
 import '../theme.dart';
 import 'device_tile.dart';
@@ -98,7 +97,7 @@ class TransferCard extends StatelessWidget {
         return '${formatBytes(t.doneBytes)} of ${formatBytes(t.totalBytes)}';
       case TransferStatus.done:
         if (t.direction == TransferDirection.incoming) {
-          return Platform.isIOS ? 'Saved in Files › Sushi Roll' : 'Saved to your Sushi Roll folder';
+          return host.isIOS ? 'Saved in Files › Sushi Roll' : 'Saved to your Sushi Roll folder';
         }
         return _sizeWithSavings(t);
       case TransferStatus.waiting:
@@ -126,7 +125,7 @@ class TransferCard extends StatelessWidget {
         t.status == TransferStatus.cancelled;
     final canOpen = t.status == TransferStatus.done &&
         t.direction == TransferDirection.incoming &&
-        (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+        host.isDesktop;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),

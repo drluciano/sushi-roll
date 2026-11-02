@@ -23,6 +23,8 @@ jobs:
 
   windows:
     name: Windows build and installer
+    # Skipped on pull requests to save minutes; main and tags still build it.
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
     permissions:
       contents: write # publishing the installer to Releases

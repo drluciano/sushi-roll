@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/controller.dart';
+import '../app/host.dart' as host;
 import '../core/models.dart';
 import 'adaptive.dart';
 import 'sheets.dart';
@@ -30,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription<IncomingOffer>? _offers;
   final Set<String> _autoDismissScheduled = {};
 
-  bool get _mobile => Platform.isIOS || Platform.isAndroid;
+  bool get _mobile => host.isMobile;
 
   @override
   void initState() {
@@ -70,24 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
     offer.decline();
   }
 
-  Future<List<PickedFile>> _pick({bool media = false}) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        type: media ? FileType.media : FileType.any,
-      );
-      if (result == null) return const [];
-      return [
-        for (final f in result.files)
-          if (f.path != null) PickedFile(f.path!, f.name, f.size),
-      ];
-    } on PlatformException {
-      return const [];
-    }
-  }
-
   Future<void> _pickInto({bool media = false}) async {
-    c.addPicked(await _pick(media: media));
+    c.addPicked(await c.pickFiles(media: media));
   }
 
   Future<void> _tapDevice(Peer p) async {
