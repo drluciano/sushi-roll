@@ -5,18 +5,21 @@ import 'package:duo_display/duo_display.dart';
 import 'package:flutter/services.dart';
 
 import 'app/controller.dart';
+import 'app/desktop_shell.dart';
 import 'core/models.dart';
 import 'ui/adaptive.dart';
 import 'ui/home_screen.dart';
 import 'ui/theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DesktopShell.instance.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
   ));
   final controller = AppController(platform: _detectPlatform());
-  controller.init();
+  // Windows tray icon and close/minimize-to-tray, once settings are loaded.
+  controller.init().then((_) => DesktopShell.instance.attach(controller));
   // DuoDisplayFeatures reports iPhone Duo's fold and cameras (iOS 27.1 hinge
   // and reserved-region APIs) through MediaQuery.displayFeatures. Elsewhere
   // it does nothing.

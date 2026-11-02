@@ -46,6 +46,9 @@ MinVersion=10.0
 PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=dialog
 CloseApplications=yes
+; Matches the runner's single-instance mutex, so setup asks to close a copy
+; that's hiding in the tray.
+AppMutex=SushiRollSingleInstance
 RestartApplications=no
 
 [Languages]

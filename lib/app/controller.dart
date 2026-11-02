@@ -197,6 +197,16 @@ class AppController extends ChangeNotifier implements ServerDelegate {
     notifyListeners();
   }
 
+  void setCloseToTray(bool v) {
+    settings.closeToTray = v;
+    notifyListeners();
+  }
+
+  void setMinimizeToTray(bool v) {
+    settings.minimizeToTray = v;
+    notifyListeners();
+  }
+
   void regeneratePin() {
     settings.regeneratePin();
     notifyListeners();

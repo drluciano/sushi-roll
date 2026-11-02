@@ -84,3 +84,43 @@ if rc.exists():
     src = re.sub(r'(VALUE "FileDescription", )"[^"]*"', r'\1"Sushi Roll"', src)
     src = re.sub(r'(VALUE "ProductName", )"[^"]*"', r'\1"Sushi Roll"', src)
     rc.write_text(src)
+
+# One copy at a time: with Sushi Roll hidden in the tray, opening it again from
+# the Start menu brings the running window back instead of starting a second
+# receiver. The mutex name is also Inno Setup's AppMutex.
+SINGLE_INSTANCE = '''
+  // Sushi Roll: single instance.
+  ::CreateMutexW(nullptr, FALSE, L"SushiRollSingleInstance");
+  if (::GetLastError() == ERROR_ALREADY_EXISTS) {
+    HWND existing = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"Sushi Roll");
+    if (existing) {
+      ::ShowWindow(existing, SW_SHOW);
+      if (::IsIconic(existing)) ::ShowWindow(existing, SW_RESTORE);
+      ::SetForegroundWindow(existing);
+    }
+    return EXIT_SUCCESS;
+  }
+'''
+if main_cpp.exists():
+    src = main_cpp.read_text()
+    if "Sushi Roll: single instance" not in src:
+        src, n = re.subn(r"(wWinMain\([^)]*\)\s*\{\n)", lambda m: m.group(1) + SINGLE_INSTANCE.lstrip("\n"), src, count=1)
+        if n != 1:
+            raise SystemExit("patch_platforms: couldn't find wWinMain in main.cpp")
+        main_cpp.write_text(src)
+
+# "Start with Windows" launches with --hidden: skip the first Show() so the app
+# boots straight into the tray without flashing a window.
+flutter_window = root / "windows" / "runner" / "flutter_window.cpp"
+if flutter_window.exists():
+    src = flutter_window.read_text()
+    if "--hidden" not in src:
+        if "this->Show();" not in src:
+            raise SystemExit("patch_platforms: couldn't find Show() in flutter_window.cpp")
+        src = src.replace(
+            "this->Show();",
+            'if (wcsstr(GetCommandLineW(), L"--hidden") == nullptr) this->Show();',
+            1,
+        )
+        src = src.replace('#include "flutter_window.h"', '#include "flutter_window.h"\n\n#include <cwchar>', 1)
+        flutter_window.write_text(src)
