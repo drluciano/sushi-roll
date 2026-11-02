@@ -180,9 +180,8 @@ class SendTray extends StatelessWidget {
   }
 }
 
-/// "+ Files" and "Photos". Side by side when both labels fit on one
-/// line, stacked full-width when the tray is too narrow (iPhone Duo's outer
-/// display, large text sizes), so a label never wraps onto two lines.
+/// "+ Files" and "Photos", always side by side on one row. Labels never wrap;
+/// at very large text sizes they shrink to fit instead.
 class _PickButtons extends StatelessWidget {
   const _PickButtons({
     required this.showPhotos,
@@ -194,9 +193,6 @@ class _PickButtons extends StatelessWidget {
   final VoidCallback onPickFiles;
   final VoidCallback onPickPhotos;
 
-  /// Narrowest a button can be and still fit icon + label on one line at the
-  /// default text size.
-  static const double _minButtonWidth = 120;
   static const double _gap = 12;
 
   static final _style = FilledButton.styleFrom(
@@ -224,23 +220,13 @@ class _PickButtons extends StatelessWidget {
       icon: const Icon(Icons.photo_library_rounded),
       label: _label('Photos'),
     );
-    return LayoutBuilder(builder: (context, box) {
-      final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
-      final sideBySide = box.maxWidth >= 2 * _minButtonWidth * scale + _gap;
-      if (sideBySide) {
-        return Row(
-          children: [
-            Expanded(child: files),
-            const SizedBox(width: _gap),
-            Expanded(child: photos),
-          ],
-        );
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [files, const SizedBox(height: 10), photos],
-      );
-    });
+    return Row(
+      children: [
+        Expanded(child: files),
+        const SizedBox(width: _gap),
+        Expanded(child: photos),
+      ],
+    );
   }
 }
 
