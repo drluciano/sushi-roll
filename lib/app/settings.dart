@@ -78,6 +78,14 @@ class Settings {
   ImageQuality get imageQuality => ImageQuality.fromName(_prefs.getString('imageQuality'));
   set imageQuality(ImageQuality v) => _prefs.setString('imageQuality', v.name);
 
+  /// Windows: the X button hides to the tray so files keep arriving.
+  bool get closeToTray => _prefs.getBool('closeToTray') ?? true;
+  set closeToTray(bool v) => _prefs.setBool('closeToTray', v);
+
+  /// Windows: minimizing hides to the tray instead of the taskbar.
+  bool get minimizeToTray => _prefs.getBool('minimizeToTray') ?? false;
+  set minimizeToTray(bool v) => _prefs.setBool('minimizeToTray', v);
+
   bool get seenWelcome => _prefs.getBool('seenWelcome') ?? false;
   set seenWelcome(bool v) => _prefs.setBool('seenWelcome', v);
 

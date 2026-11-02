@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/controller.dart';
+import '../app/desktop_shell.dart';
 import '../core/discovery/tailscale.dart';
 import '../core/models.dart';
 import 'theme.dart';
@@ -290,6 +291,7 @@ class SettingsSheet extends StatefulWidget {
 class _SettingsSheetState extends State<SettingsSheet> {
   late final _name = TextEditingController(text: widget.controller.settings.deviceName);
   String? _receivePath;
+  bool? _startWithWindows;
 
   bool get _desktop => Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
@@ -299,6 +301,17 @@ class _SettingsSheetState extends State<SettingsSheet> {
     widget.controller.receiveDirectory().then((d) {
       if (mounted) setState(() => _receivePath = d.path);
     });
+    if (DesktopShell.supported) {
+      DesktopShell.instance.launchAtStartupEnabled().then((on) {
+        if (mounted) setState(() => _startWithWindows = on);
+      });
+    }
+  }
+
+  Future<void> _setStartWithWindows(bool on) async {
+    setState(() => _startWithWindows = on);
+    final actual = await DesktopShell.instance.setLaunchAtStartup(on);
+    if (mounted) setState(() => _startWithWindows = actual);
   }
 
   @override
@@ -425,6 +438,30 @@ class _SettingsSheetState extends State<SettingsSheet> {
               section('Received files'),
               Text('Open the Files app → On My iPhone (or iPad) → Sushi Roll.',
                   style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+            ],
+            if (DesktopShell.supported) ...[
+              section('In the background'),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Close to tray'),
+                subtitle: const Text('The X button keeps Sushi Roll running next to the clock, so files still arrive'),
+                value: c.settings.closeToTray,
+                onChanged: c.setCloseToTray,
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Minimize to tray'),
+                subtitle: const Text('Minimizing hides the window instead of leaving it on the taskbar'),
+                value: c.settings.minimizeToTray,
+                onChanged: c.setMinimizeToTray,
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Start with Windows'),
+                subtitle: const Text('Opens quietly in the tray when you sign in'),
+                value: _startWithWindows ?? false,
+                onChanged: _startWithWindows == null ? null : _setStartWithWindows,
+              ),
             ],
             const SizedBox(height: 28),
             Center(child: Text('Sushi Roll 0.1', style: theme.textTheme.bodySmall?.copyWith(color: muted))),
