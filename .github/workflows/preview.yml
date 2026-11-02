@@ -1,0 +1,57 @@
+name: Phone preview
+
+# Builds the web preview (lib/main_preview.dart: the real UI with sample
+# devices, no networking) on every push and publishes it to GitHub Pages:
+#   https://drluciano.github.io/sushi-roll/
+# Open that in Safari on the iPhone. Nothing to install on the phone or PC.
+# The page always shows the most recent push, from any branch.
+#
+# One-time setup: Settings > Pages > Build and deployment > Source:
+# "Deploy from a branch", Branch: gh-pages, folder: / (root).
+on:
+  push:
+    branches-ignore: [gh-pages]
+  workflow_dispatch:
+
+# Only the newest push matters; drop older builds still running.
+concurrency:
+  group: phone-preview
+  cancel-in-progress: true
+
+permissions:
+  contents: write # pushing the built site to the gh-pages branch
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      # Icons and favicon aren't committed; this fills them in and leaves
+      # web/index.html and web/manifest.json alone.
+      - run: flutter create --platforms web --org com.drluciano --project-name sushi_roll --no-pub .
+      - name: Build
+        run: |
+          SHORT=${GITHUB_SHA::7}
+          SUBJECT=$(git log -1 --format=%s)
+          flutter build web -t lib/main_preview.dart --base-href /sushi-roll/ \
+            "--dart-define=PREVIEW_LABEL=$GITHUB_REF_NAME @ $SHORT · $SUBJECT"
+          # Pages caches files for 10 minutes; versioned URLs make Safari
+          # fetch the new build as soon as the page is reloaded.
+          sed -i "s/flutter_bootstrap.js\"/flutter_bootstrap.js?v=$SHORT\"/" build/web/index.html
+          sed -i "s/main\.dart\.js/main.dart.js?v=$SHORT/g" build/web/flutter_bootstrap.js
+          touch build/web/.nojekyll
+      - name: Publish to gh-pages
+        run: |
+          cd build/web
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Preview of $GITHUB_REF_NAME @ ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
+      - name: Link
+        run: echo "::notice::Preview of $GITHUB_REF_NAME is publishing to https://drluciano.github.io/sushi-roll/ (live in about a minute)"

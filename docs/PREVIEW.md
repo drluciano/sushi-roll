@@ -1,16 +1,26 @@
 # Phone preview
 
-See UI changes on your iPhone a minute after they're pushed, without waiting for TestFlight and without using GitHub Actions minutes.
+See UI changes on your iPhone a few minutes after they're pushed, without waiting for TestFlight. Nothing to install on the phone: it's a web page you open in Safari.
 
-Your Windows PC watches GitHub. When a branch gets a new commit, it builds the app's UI for the web (with sample devices and pretend transfers, no real networking) and serves it on your tailnet. Safari on your iPhone shows it, and the open page reloads by itself when the next build is ready.
+## The easy way: a link
 
-## One-time setup on the PC
+Open **https://drluciano.github.io/sushi-roll/** in Safari on your iPhone (Share › Add to Home Screen makes it open full screen like an app).
+
+Every push, to any branch, rebuilds it (`.github/workflows/preview.yml`, about 2 to 3 minutes), so it always shows the newest change. Reload the page to get the latest build. The Preview button shows which branch and commit you're looking at.
+
+One-time setup: repo **Settings › Pages › Build and deployment**: Source **Deploy from a branch**, Branch **gh-pages**, folder **/ (root)**, Save. (The gh-pages branch appears after the workflow's first run.)
+
+## The fast way: your PC
+
+If you want changes in about a minute, with the page reloading by itself, run the preview server on your PC instead. Your PC builds the preview and serves it on your tailnet.
+
+### One-time setup on the PC
 
 1. Install **Git**: `winget install Git.Git`
 2. Install the **Flutter SDK** (stable): follow https://docs.flutter.dev/get-started/install/windows (unzip it, add `flutter\bin` to PATH). Run `flutter doctor` once. You only need the "Chrome / web" part; Android Studio and Visual Studio aren't needed for the preview.
 3. Clone the repo somewhere: `git clone https://github.com/drluciano/sushi-roll` (Git will ask you to sign in to GitHub the first time).
 
-## Running it
+### Running it
 
 ```
 cd sushi-roll

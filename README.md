@@ -44,6 +44,6 @@ The native platform folders aren't committed yet. CI generates them with `tool/b
 
 - **CI** (`.github/workflows/ci.yml`): analyze and test on every push and PR; the Windows build + installer on `main` and tags only. Pushes to `main` refresh the "Windows (latest build)" pre-release; pushing a `v*` tag creates a proper release. The installer script is `installer/windows/SushiRoll.iss` (Inno Setup).
 - **TestFlight** (`.github/workflows/testflight.yml`): runs when you tap **Run workflow** in the Actions tab or push a `v*` tag. See [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md).
-- **Phone preview** (`tool/preview_server.dart`): your PC builds the UI for the web with sample devices whenever a branch is pushed, and your iPhone shows it in Safari over Tailscale, with fake fold postures for iPhone Duo. No Actions minutes. See [docs/PREVIEW.md](docs/PREVIEW.md).
+- **Phone preview**: every push publishes the UI with sample devices to https://drluciano.github.io/sushi-roll/ (`.github/workflows/preview.yml`); open it in Safari on the iPhone. For faster turnaround, `tool/preview_server.dart` lets your PC build the UI for the web with sample devices whenever a branch is pushed, and your iPhone shows it in Safari over Tailscale, with fake fold postures for iPhone Duo. No Actions minutes. See [docs/PREVIEW.md](docs/PREVIEW.md).
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the protocol.
