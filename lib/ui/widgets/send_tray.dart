@@ -88,27 +88,10 @@ class SendTray extends StatelessWidget {
       key: const ValueKey('empty'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onPickFiles,
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Choose files'),
-              ),
-            ),
-            if (showPhotos) ...[
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: onPickPhotos,
-                  style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
-                  icon: const Icon(Icons.photo_library_rounded),
-                  label: const Text('Photos'),
-                ),
-              ),
-            ],
-          ],
+        _PickButtons(
+          showPhotos: showPhotos,
+          onPickFiles: onPickFiles,
+          onPickPhotos: onPickPhotos,
         ),
         const SizedBox(height: 10),
         Text(
@@ -194,6 +177,70 @@ class SendTray extends StatelessWidget {
         Center(child: _TapHint(beside: devicesAreBeside)),
       ],
     );
+  }
+}
+
+/// "Choose files" and "Photos". Side by side when both labels fit on one
+/// line, stacked full-width when the tray is too narrow (iPhone Duo's outer
+/// display, large text sizes), so a label never wraps onto two lines.
+class _PickButtons extends StatelessWidget {
+  const _PickButtons({
+    required this.showPhotos,
+    required this.onPickFiles,
+    required this.onPickPhotos,
+  });
+
+  final bool showPhotos;
+  final VoidCallback onPickFiles;
+  final VoidCallback onPickPhotos;
+
+  /// Narrowest a button can be and still fit icon + label on one line at the
+  /// default text size.
+  static const double _minButtonWidth = 150;
+  static const double _gap = 12;
+
+  static final _style = FilledButton.styleFrom(
+    minimumSize: const Size(0, 52),
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+  );
+
+  static Widget _label(String text) => FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(text, maxLines: 1, softWrap: false),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final files = FilledButton.icon(
+      onPressed: onPickFiles,
+      style: _style,
+      icon: const Icon(Icons.add_rounded),
+      label: _label('Choose files'),
+    );
+    if (!showPhotos) return SizedBox(width: double.infinity, child: files);
+    final photos = FilledButton.tonalIcon(
+      onPressed: onPickPhotos,
+      style: _style,
+      icon: const Icon(Icons.photo_library_rounded),
+      label: _label('Photos'),
+    );
+    return LayoutBuilder(builder: (context, box) {
+      final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+      final sideBySide = box.maxWidth >= 2 * _minButtonWidth * scale + _gap;
+      if (sideBySide) {
+        return Row(
+          children: [
+            Expanded(child: files),
+            const SizedBox(width: _gap),
+            Expanded(child: photos),
+          ],
+        );
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [files, const SizedBox(height: 10), photos],
+      );
+    });
   }
 }
 
