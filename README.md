@@ -29,6 +29,7 @@ The installer isn't code-signed yet, so SmartScreen may warn the first time: cli
 - The receiver gets an Accept/Decline sheet. You can also require a 4-digit PIN in Settings.
 - Received files go to `Downloads\Sushi Roll` on Windows (you can change this), and to **Files › On My iPhone › Sushi Roll** on iOS.
 - Long-press a device to save or forget it.
+- On Windows, Sushi Roll lives in the tray next to the clock. Closing the window keeps it running there so files still arrive (the window pops back up when someone sends you something). Click the tray icon to open it, right-click for **Quit**. Settings › In the background has **Close to tray**, **Minimize to tray** and **Start with Windows**.
 
 ## Development
 
